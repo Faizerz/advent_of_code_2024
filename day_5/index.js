@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-fs.readFile("test.txt", "utf8", (err, data) => {
+fs.readFile("input.txt", "utf8", (err, data) => {
   if (err) {
     console.error("Error reading file:", err);
     return;
@@ -18,8 +18,6 @@ fs.readFile("test.txt", "utf8", (err, data) => {
     };
   }, {});
 
-  console.log("\n\n", rulesIndex, "\n\n");
-
   let totalMiddleNumber = 0;
   let invalidPageUpdates = [];
 
@@ -36,7 +34,7 @@ fs.readFile("test.txt", "utf8", (err, data) => {
 
     let validPage = true;
 
-    pages.forEach((currentPage, idx) => {
+    pages.forEach((currentPage) => {
       if (!validPage) return;
 
       const currentPageIndex = pageIndexMap[currentPage];
@@ -51,16 +49,7 @@ fs.readFile("test.txt", "utf8", (err, data) => {
 
         const pageIndexOfPageInQuestion = pageIndexMap[pageInQuestion];
         if (pageIndexOfPageInQuestion < currentPageIndex) {
-          console.log(
-            `Invalid ordering: ${pageInQuestion} must be after ${currentPage}`
-          );
           validPage = false;
-
-          const fixedPageOrder = fixInvalidUpdate(
-            pages,
-            currentPageIndex,
-            pageIndexOfPageInQuestion
-          );
 
           invalidPageUpdates.push(pages);
         }
@@ -68,19 +57,102 @@ fs.readFile("test.txt", "utf8", (err, data) => {
     });
 
     if (validPage) {
-      console.log(`Valid page - Adding ${pages[(pages.length - 1) / 2]}`);
       totalMiddleNumber += Number(pages[(pages.length - 1) / 2]);
     }
   });
 
-  // console.log("Total middle number:", totalMiddleNumber);
+  console.log("Total middle number:", totalMiddleNumber);
+
+  // Part Two
+  const fixedInvalidPageUpdates = invalidPageUpdates
+    .map((pages) => {
+      const fixedPages = fixInvalidUpdate(pages, rulesIndex);
+      if (fixedPages) {
+        return fixedPages;
+      } else {
+        return null;
+      }
+    })
+    .filter((pages) => pages !== null);
+
+  const partTwoAnswer = fixedInvalidPageUpdates.reduce((acc, pages) => {
+    return acc + Number(pages[(pages.length - 1) / 2]);
+  }, 0);
+
+  console.log("Part two answer:", partTwoAnswer);
 });
 
-// Part Two
-const fixInvalidUpdate = (
-  pages,
-  currentPageIndex,
-  pageIndexOfPageInQuestion
-) => {
-  console.log(pages, pages[currentPageIndex], pages[pageIndexOfPageInQuestion]);
+// Part Two Helper functions
+const fixInvalidUpdate = (pages, rulesIndex, triedPagesSet = new Set()) => {
+  const pagesKey = pages.join(",");
+
+  if (triedPagesSet.has(pagesKey)) {
+    return null;
+  }
+
+  triedPagesSet.add(pagesKey);
+
+  const validationResult = validatePages(pages, rulesIndex);
+
+  if (validationResult.isValid) {
+    return pages;
+  }
+
+  const invalidPairs = validationResult.invalidPairs;
+
+  for (let [currentPageIndex, pageIndexOfPageInQuestion] of invalidPairs) {
+    // Swap the pages causing invalidity
+    const newPages = [...pages];
+    [newPages[currentPageIndex], newPages[pageIndexOfPageInQuestion]] = [
+      newPages[pageIndexOfPageInQuestion],
+      newPages[currentPageIndex],
+    ];
+
+    // Recursively try to fix the ordering
+    const result = fixInvalidUpdate(newPages, rulesIndex, triedPagesSet);
+
+    if (result) {
+      return result;
+    }
+  }
+
+  return null;
+};
+
+const validatePages = (pages, rulesIndex) => {
+  const pageIndexMap = pages.reduce(
+    (acc, page, idx) => ({
+      ...acc,
+      [page]: idx,
+    }),
+    {}
+  );
+
+  let invalidPairs = [];
+
+  for (let currentPage of pages) {
+    const currentPageIndex = pageIndexMap[currentPage];
+    const pagesThatMustBeAfterCurrentPage = rulesIndex[currentPage];
+
+    if (!pagesThatMustBeAfterCurrentPage) {
+      continue;
+    }
+
+    for (let pageInQuestion of pagesThatMustBeAfterCurrentPage) {
+      const pageIndexOfPageInQuestion = pageIndexMap[pageInQuestion];
+      if (pageIndexOfPageInQuestion === undefined) {
+        continue;
+      }
+
+      if (pageIndexOfPageInQuestion < currentPageIndex) {
+        invalidPairs.push([currentPageIndex, pageIndexOfPageInQuestion]);
+      }
+    }
+  }
+
+  if (invalidPairs.length === 0) {
+    return { isValid: true };
+  } else {
+    return { isValid: false, invalidPairs };
+  }
 };
