@@ -10,13 +10,15 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   const orderingRules = pageOrderingRulesData.split("\n");
   const pageUpdates = pageUpdatesData.split("\n");
 
-  const rulesIndex = orderingRules.reduce((acc, rule) => {
+  // Build the rules index
+  const rulesIndex = {};
+  orderingRules.forEach((rule) => {
     const [currentPage, afterCurrentPage] = rule.split("|");
-    return {
-      ...acc,
-      [currentPage]: [...(acc[currentPage] || []), afterCurrentPage],
-    };
-  }, {});
+    if (!rulesIndex[currentPage]) {
+      rulesIndex[currentPage] = [];
+    }
+    rulesIndex[currentPage].push(afterCurrentPage);
+  });
 
   let totalMiddleNumber = 0;
   let invalidPageUpdates = [];
@@ -24,69 +26,64 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   // Part One
   pageUpdates.forEach((pageUpdate) => {
     const pages = pageUpdate.split(",");
-    const pageIndexMap = pages.reduce(
-      (acc, page, idx) => ({
-        ...acc,
-        [page]: idx,
-      }),
-      {}
-    );
+
+    const pageIndexMap = {};
+    pages.forEach((page, idx) => {
+      pageIndexMap[page] = idx;
+    });
 
     let validPage = true;
 
-    pages.forEach((currentPage) => {
-      if (!validPage) return;
+    // Check for ordering violations
+    for (const currentPage of pages) {
+      if (!validPage) break;
 
       const currentPageIndex = pageIndexMap[currentPage];
-      const pagesThatMustBeAfterCurrentPage = rulesIndex[currentPage];
+      const pagesAfterCurrent = rulesIndex[currentPage];
 
-      if (!pagesThatMustBeAfterCurrentPage) {
-        return;
-      }
+      if (!pagesAfterCurrent) continue;
 
-      pagesThatMustBeAfterCurrentPage.forEach((pageInQuestion) => {
-        if (!validPage) return;
+      for (const pageAfter of pagesAfterCurrent) {
+        if (!validPage) break;
 
-        const pageIndexOfPageInQuestion = pageIndexMap[pageInQuestion];
-        if (pageIndexOfPageInQuestion < currentPageIndex) {
+        const pageAfterIndex = pageIndexMap[pageAfter];
+        if (pageAfterIndex === undefined) continue;
+
+        if (pageAfterIndex < currentPageIndex) {
           validPage = false;
-
           invalidPageUpdates.push(pages);
+          break;
         }
-      });
-    });
+      }
+    }
 
     if (validPage) {
-      totalMiddleNumber += Number(pages[(pages.length - 1) / 2]);
+      totalMiddleNumber += Number(
+        pages[(middleIndex = Math.floor(pages.length / 2))]
+      );
     }
   });
 
   console.log("Total middle number:", totalMiddleNumber);
 
-  // Part Two
+  // Part Two: Fix invalid page updates
   const fixedInvalidPageUpdates = invalidPageUpdates
-    .map((pages) => {
-      const fixedPages = fixInvalidUpdate(pages, rulesIndex);
-      if (fixedPages) {
-        return fixedPages;
-      } else {
-        return null;
-      }
-    })
+    .map((pages) => fixInvalidUpdate(pages, rulesIndex))
     .filter((pages) => pages !== null);
 
-  const partTwoAnswer = fixedInvalidPageUpdates.reduce((acc, pages) => {
-    return acc + Number(pages[(pages.length - 1) / 2]);
-  }, 0);
+  const partTwoAnswer = fixedInvalidPageUpdates.reduce(
+    (acc, pages) => acc + Number(pages[Math.floor(pages.length / 2)]),
+    0
+  );
 
   console.log("Part two answer:", partTwoAnswer);
 });
 
-// Part Two Helper functions
 const fixInvalidUpdate = (pages, rulesIndex, triedPagesSet = new Set()) => {
   const pagesKey = pages.join(",");
 
   if (triedPagesSet.has(pagesKey)) {
+    // Avoid infinite recursion by not reprocessing the same page sequence
     return null;
   }
 
@@ -100,11 +97,11 @@ const fixInvalidUpdate = (pages, rulesIndex, triedPagesSet = new Set()) => {
 
   const invalidPairs = validationResult.invalidPairs;
 
-  for (let [currentPageIndex, pageIndexOfPageInQuestion] of invalidPairs) {
+  for (const [currentPageIndex, pageAfterIndex] of invalidPairs) {
     // Swap the pages causing invalidity
     const newPages = [...pages];
-    [newPages[currentPageIndex], newPages[pageIndexOfPageInQuestion]] = [
-      newPages[pageIndexOfPageInQuestion],
+    [newPages[currentPageIndex], newPages[pageAfterIndex]] = [
+      newPages[pageAfterIndex],
       newPages[currentPageIndex],
     ];
 
@@ -115,37 +112,30 @@ const fixInvalidUpdate = (pages, rulesIndex, triedPagesSet = new Set()) => {
       return result;
     }
   }
-
-  return null;
 };
 
+// Helper function to validate page ordering
 const validatePages = (pages, rulesIndex) => {
-  const pageIndexMap = pages.reduce(
-    (acc, page, idx) => ({
-      ...acc,
-      [page]: idx,
-    }),
-    {}
-  );
+  const pageIndexMap = {};
+  pages.forEach((page, idx) => {
+    pageIndexMap[page] = idx;
+  });
 
-  let invalidPairs = [];
+  const invalidPairs = [];
 
-  for (let currentPage of pages) {
+  for (const currentPage of pages) {
     const currentPageIndex = pageIndexMap[currentPage];
-    const pagesThatMustBeAfterCurrentPage = rulesIndex[currentPage];
+    const pagesAfterCurrent = rulesIndex[currentPage];
 
-    if (!pagesThatMustBeAfterCurrentPage) {
-      continue;
-    }
+    if (!pagesAfterCurrent) continue;
 
-    for (let pageInQuestion of pagesThatMustBeAfterCurrentPage) {
-      const pageIndexOfPageInQuestion = pageIndexMap[pageInQuestion];
-      if (pageIndexOfPageInQuestion === undefined) {
-        continue;
-      }
+    for (const pageAfter of pagesAfterCurrent) {
+      const pageAfterIndex = pageIndexMap[pageAfter];
+      if (pageAfterIndex === undefined) continue;
 
-      if (pageIndexOfPageInQuestion < currentPageIndex) {
-        invalidPairs.push([currentPageIndex, pageIndexOfPageInQuestion]);
+      if (pageAfterIndex < currentPageIndex) {
+        // Found an invalid ordering
+        invalidPairs.push([currentPageIndex, pageAfterIndex]);
       }
     }
   }
