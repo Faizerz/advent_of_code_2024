@@ -40,34 +40,40 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   );
 
   const visitedLocations = { [STARTING_POINT.x]: { [STARTING_POINT.y]: true } };
+  let finished = false;
 
-  const navigateMap = (x, y, direction) => {
-    const [dx, dy] = direction;
-    const newX = x + dx;
-    const newY = y + dy;
+  const navigateMap = (startX, startY, startDirection) => {
+    let currentState = { x: startX, y: startY, direction: startDirection };
 
-    const target = MAP[newX]?.[newY];
+    while (!finished) {
+      const { x, y, direction } = currentState;
+      const [dx, dy] = direction;
+      const newX = x + dx;
+      const newY = y + dy;
 
-    if (!target) {
-      console.log("Total locations visited:", totalVisited);
-      return;
-    }
+      const target = MAP[newX]?.[newY];
 
-    if (!visitedLocations[newX]) visitedLocations[newX] = {};
-
-    if (target === "." || target === "^") {
-      if (!visitedLocations[newX][newY]) {
-        visitedLocations[newX][newY] = true;
-        totalVisited++;
+      if (!target) {
+        console.log("Total locations visited:", totalVisited);
+        finished = true;
+        break;
       }
-      navigateMap(newX, newY, direction);
-      return;
-    }
 
-    if (target === "#") {
-      const newDirection = getNewDirection(direction);
-      navigateMap(x, y, newDirection);
-      return;
+      if (!visitedLocations[newX]) visitedLocations[newX] = {};
+
+      if (target === "." || target === "^") {
+        if (!visitedLocations[newX][newY]) {
+          visitedLocations[newX][newY] = true;
+          totalVisited++;
+        }
+        currentState = { x: newX, y: newY, direction }; // Move forward
+        continue;
+      }
+
+      if (target === "#") {
+        const newDirection = getNewDirection(direction);
+        currentState = { x, y, direction: newDirection }; // Change direction
+      }
     }
   };
 
