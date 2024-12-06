@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-fs.readFile("test.txt", "utf8", (err, data) => {
+fs.readFile("input.txt", "utf8", (err, data) => {
   if (err) {
     console.error("Error reading file:", err);
     return;
@@ -8,8 +8,6 @@ fs.readFile("test.txt", "utf8", (err, data) => {
 
   const MAP = {};
   const rows = data.split("\n");
-  const Y_MAX = rows.length;
-  const X_MAX = rows[0].length;
   const Directions = {
     UP: [0, -1],
     DOWN: [0, 1],
@@ -43,38 +41,36 @@ fs.readFile("test.txt", "utf8", (err, data) => {
 
   const visitedLocations = { [STARTING_POINT.x]: { [STARTING_POINT.y]: true } };
 
-  const moveDirection = (x, y, direction) => {
+  const navigateMap = (x, y, direction) => {
     const [dx, dy] = direction;
     const newX = x + dx;
     const newY = y + dy;
 
-    const targetDestination = MAP[newX]?.[newY];
+    const target = MAP[newX]?.[newY];
 
-    console.log(targetDestination);
-
-    if (!targetDestination) {
-      console.log("Locations Visited:", totalVisited);
+    if (!target) {
+      console.log("Total locations visited:", totalVisited);
       return;
     }
 
     if (!visitedLocations[newX]) visitedLocations[newX] = {};
 
-    if (targetDestination === "." || targetDestination === "^") {
+    if (target === "." || target === "^") {
       if (!visitedLocations[newX][newY]) {
         visitedLocations[newX][newY] = true;
         totalVisited++;
       }
-      moveDirection(newX, newY, direction);
+      navigateMap(newX, newY, direction);
       return;
     }
 
-    if (targetDestination === "#") {
-      moveDirection(x, y, getNewDirection(direction));
+    if (target === "#") {
+      const newDirection = getNewDirection(direction);
+      navigateMap(x, y, newDirection);
       return;
     }
-
-    return;
   };
 
-  moveDirection(STARTING_POINT.x, STARTING_POINT.y, STARTING_DIRECTION);
+  // Start navigation
+  navigateMap(STARTING_POINT.x, STARTING_POINT.y, STARTING_DIRECTION);
 });
