@@ -17,7 +17,7 @@ const tryAllCombinations = (nums, target) => {
     return multiplyResult;
   }
 
-  // PART TWO
+  // PART TWO - comment out for part one answer
   const concatResult = tryAllCombinations(
     [Number(`${first}${second}`), ...rest],
     target
