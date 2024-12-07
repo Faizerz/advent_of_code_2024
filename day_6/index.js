@@ -26,8 +26,7 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   const STARTING_POINT = { x: null, y: null };
   const STARTING_DIRECTION = Directions.UP;
 
-  let totalVisited = 1;
-  let getRoute = true;
+  let totalVisited = 0;
   let route = [];
   let totalLoopRoutes = 0;
 
@@ -47,32 +46,30 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   const navigateMap = (startX, startY, startDirection) => {
     let visitedLocations = { [startX]: { [startY]: 0 } };
     let currentState = { x: startX, y: startY, direction: startDirection };
-    let finished = false;
 
-    while (!finished) {
+    while (true) {
       const { x, y, direction } = currentState;
       const [dx, dy] = direction;
       const newX = x + dx;
       const newY = y + dy;
 
-      const target = MAP[newX]?.[newY];
+      const nextLocation = MAP[newX]?.[newY];
 
-      if (!target) {
-        finished = true;
+      if (!nextLocation) {
         break;
       }
 
       if (!visitedLocations[newX]) visitedLocations[newX] = {};
 
       if (visitedLocations[newX][newY] > 4) {
-        finished = true;
         totalLoopRoutes++;
         break;
       }
 
-      if (target === "." || target === "^") {
+      if (nextLocation === "." || nextLocation === "^") {
         if (!visitedLocations[newX][newY]) {
           visitedLocations[newX][newY] = 1;
+          route.push({ x: newX, y: newY });
           totalVisited++;
         } else {
           visitedLocations[newX][newY]++;
@@ -80,12 +77,10 @@ fs.readFile("input.txt", "utf8", (err, data) => {
 
         currentState = { x: newX, y: newY, direction };
 
-        if (getRoute) route.push({ x: newX, y: newY });
-
         continue;
       }
 
-      if (target === "#") {
+      if (nextLocation === "#") {
         currentState = { x, y, direction: getNewDirection(direction) };
       }
     }
@@ -96,21 +91,7 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   console.log("Total locations visited:", totalVisited);
 
   // Part Two
-  getRoute = false;
-
-  const getUniqueRoute = (route) => {
-    const unique = [];
-    route.forEach((r) => {
-      if (!unique.some((u) => u.x === r.x && u.y === r.y)) {
-        unique.push(r);
-      }
-    });
-    return unique;
-  };
-
-  const uniqueRoute = getUniqueRoute(route);
-
-  uniqueRoute.forEach(({ x, y }) => {
+  route.forEach(({ x, y }) => {
     const initialChar = MAP[x][y];
     MAP[x][y] = "#";
     navigateMap(STARTING_POINT.x, STARTING_POINT.y, STARTING_DIRECTION);
