@@ -1,73 +1,54 @@
 const fs = require("fs");
 
-const getAntinodes = (nodeOne, nodeTwo, n) => {
-  const isNodeOneFurtherRight = nodeOne.x > nodeTwo.x;
-  const isNodeOneFurtherDown = nodeOne.y > nodeTwo.y;
-  const isNodeOneFurtherLeft = nodeOne.x < nodeTwo.x;
-  const isNodeOneFurtherUp = nodeOne.y < nodeTwo.y;
+const getAntinodes = (nodeOne, nodeTwo, nMax, X_MAX, Y_MAX) => {
+  const antinodes = [];
+  const isValid = (x, y) => x >= 0 && x < X_MAX && y >= 0 && y < Y_MAX;
 
-  const dx = Math.abs(nodeOne.x - nodeTwo.x) * (n || 1);
-  const dy = Math.abs(nodeOne.y - nodeTwo.y) * (n || 1);
+  const isFurtherRight = nodeOne.x > nodeTwo.x;
+  const isFurtherDown = nodeOne.y > nodeTwo.y;
+  const isFurtherLeft = nodeOne.x < nodeTwo.x;
+  const isFurtherUp = nodeOne.y < nodeTwo.y;
 
-  if (isNodeOneFurtherRight && isNodeOneFurtherDown) {
-    return [
-      { x: nodeOne.x + dx, y: nodeOne.y + dy },
-      { x: nodeTwo.x - dx, y: nodeTwo.y - dy },
-    ];
-  } else if (isNodeOneFurtherRight && isNodeOneFurtherUp) {
-    return [
-      { x: nodeOne.x + dx, y: nodeOne.y - dy },
-      { x: nodeTwo.x - dx, y: nodeTwo.y + dy },
-    ];
-  } else if (isNodeOneFurtherLeft && isNodeOneFurtherDown) {
-    return [
-      { x: nodeOne.x - dx, y: nodeOne.y + dy },
-      { x: nodeTwo.x + dx, y: nodeTwo.y - dy },
-    ];
-  } else if (isNodeOneFurtherLeft && isNodeOneFurtherUp) {
-    return [
-      { x: nodeOne.x - dx, y: nodeOne.y - dy },
-      { x: nodeTwo.x + dx, y: nodeTwo.y + dy },
-    ];
-  } else if (nodeOne.x === nodeTwo.x) {
-    return [
-      {
-        x: nodeOne.x,
-        y: isNodeOneFurtherDown ? nodeOne.y + dy : nodeOne.y - dy,
-      },
-      {
-        x: nodeTwo.x,
-        y: isNodeOneFurtherDown ? nodeTwo.y - dy : nodeTwo.y + dy,
-      },
-    ];
-  } else if (nodeOne.y === nodeTwo.y) {
-    return [
-      {
-        x: isNodeOneFurtherRight ? nodeOne.x + dx : nodeOne.x - dx,
-        y: nodeOne.y,
-      },
-      {
-        x: isNodeOneFurtherRight ? nodeTwo.x - dx : nodeTwo.x + dx,
-        y: nodeTwo.y,
-      },
-    ];
-  }
-};
+  const addAntinode = (x, y) => isValid(x, y) && antinodes.push({ x, y });
 
-const buildNodeMap = (rows) => {
-  const nodeMap = {};
+  for (let n = -nMax; n <= nMax; n++) {
+    const dx = Math.abs(nodeOne.x - nodeTwo.x) * n;
+    const dy = Math.abs(nodeOne.y - nodeTwo.y) * n;
 
-  for (let y = 0; y < rows.length; y++) {
-    for (let x = 0; x < rows[y].length; x++) {
-      const symbol = rows[y][x];
-      if (symbol !== ".") {
-        nodeMap[symbol] = [...(nodeMap[symbol] || []), { x, y }];
-      }
+    if (isFurtherRight && isFurtherDown) {
+      addAntinode(nodeOne.x + dx, nodeOne.y + dy);
+      addAntinode(nodeTwo.x - dx, nodeTwo.y - dy);
+    } else if (isFurtherRight && isFurtherUp) {
+      addAntinode(nodeOne.x + dx, nodeOne.y - dy);
+      addAntinode(nodeTwo.x - dx, nodeTwo.y + dy);
+    } else if (isFurtherLeft && isFurtherDown) {
+      addAntinode(nodeOne.x - dx, nodeOne.y + dy);
+      addAntinode(nodeTwo.x + dx, nodeTwo.y - dy);
+    } else if (isFurtherLeft && isFurtherUp) {
+      addAntinode(nodeOne.x - dx, nodeOne.y - dy);
+      addAntinode(nodeTwo.x + dx, nodeTwo.y + dy);
+    } else if (nodeOne.x === nodeTwo.x) {
+      addAntinode(nodeOne.x, isFurtherDown ? nodeOne.y + dy : nodeOne.y - dy);
+      addAntinode(nodeTwo.x, isFurtherDown ? nodeTwo.y - dy : nodeTwo.y + dy);
+    } else if (nodeOne.y === nodeTwo.y) {
+      addAntinode(isFurtherRight ? nodeOne.x + dx : nodeOne.x - dx, nodeOne.y);
+      addAntinode(isFurtherRight ? nodeTwo.x - dx : nodeTwo.x + dx, nodeTwo.y);
     }
   }
 
-  return nodeMap;
+  return antinodes;
 };
+
+// Build a map of nodes
+const buildNodeMap = (rows) =>
+  rows.reduce((nodeMap, row, y) => {
+    row.forEach((symbol, x) => {
+      if (symbol !== ".") {
+        nodeMap[symbol] = [...(nodeMap[symbol] || []), { x, y }];
+      }
+    });
+    return nodeMap;
+  }, {});
 
 fs.readFile("input.txt", "utf8", (err, data) => {
   if (err) {
@@ -76,37 +57,24 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   }
 
   const rows = data.split("\n").map((row) => row.split(""));
-
   const Y_MAX = rows.length;
   const X_MAX = rows[0].length;
 
   const nodeMap = buildNodeMap(rows);
-  const visitedLocations = {};
+  const visitedLocations = new Set();
   let uniqueLocations = 0;
 
   Object.values(nodeMap).forEach((coordinates) => {
-    coordinates.forEach((coordinate, i) => {
-      if (i === coordinates.length - 1) {
-        return;
-      }
-
-      const nodeOne = coordinate;
-
+    coordinates.forEach((nodeOne, i) => {
       for (let j = i + 1; j < coordinates.length; j++) {
         const nodeTwo = coordinates[j];
-        const antinodes = getAntinodes(nodeOne, nodeTwo);
+        const antinodes = getAntinodes(nodeOne, nodeTwo, Y_MAX, X_MAX, Y_MAX);
 
-        antinodes.forEach((antinode) => {
-          if (
-            antinode.x >= 0 &&
-            antinode.x < X_MAX &&
-            antinode.y >= 0 &&
-            antinode.y < Y_MAX
-          ) {
-            if (!visitedLocations[`${antinode.x},${antinode.y}`]) {
-              visitedLocations[`${antinode.x},${antinode.y}`] = true;
-              uniqueLocations++;
-            }
+        antinodes.forEach(({ x, y }) => {
+          const key = `${x},${y}`;
+          if (!visitedLocations.has(key)) {
+            visitedLocations.add(key);
+            uniqueLocations++;
           }
         });
       }
