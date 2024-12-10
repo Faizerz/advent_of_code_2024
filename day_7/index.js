@@ -8,23 +8,17 @@ const tryAllCombinations = (nums, target) => {
   const [first, second, ...rest] = nums;
 
   const addResult = tryAllCombinations([first + second, ...rest], target);
-  if (addResult !== null) {
-    return addResult;
-  }
+  if (addResult !== null) return addResult;
 
   const multiplyResult = tryAllCombinations([first * second, ...rest], target);
-  if (multiplyResult !== null) {
-    return multiplyResult;
-  }
+  if (multiplyResult !== null) return multiplyResult;
 
   // PART TWO - comment out for part one answer
   const concatResult = tryAllCombinations(
     [Number(`${first}${second}`), ...rest],
     target
   );
-  if (concatResult !== null) {
-    return concatResult;
-  }
+  if (concatResult !== null) return concatResult;
 
   return null;
 };
