@@ -9,14 +9,14 @@ fs.readFile("input.txt", "utf8", (err, data) => {
   const input = data.split("\n");
   const numericInput = input.map((row) => row.split("").map(Number));
 
-  getPartOne(numericInput);
+  getAnswer(numericInput);
 });
 
 let partOneCounter = 0;
 let partTwoCounter = 0;
 let nineLocations = [];
 
-const getPartOne = (input) => {
+const getAnswer = (input) => {
   input.forEach((row, y) => {
     row.forEach((cell, x) => {
       if (cell === 0) {
@@ -33,32 +33,27 @@ const getPartOne = (input) => {
 const searchGraph = (input, target, x, y) => {
   if (target === 10) return;
 
-  const neighbours = geValidNeighbours(input, Number(target), x, y);
+  const neighbours = getValidNeighbours(input, target, x, y);
+  if (!neighbours.length) return;
 
-  if (neighbours.length === 0) {
-    return;
-  }
+  neighbours.forEach(({ x: neighbourX, y: neighbourY }) =>
+    searchGraph(input, target + 1, neighbourX, neighbourY)
+  );
 
-  neighbours.forEach((neighbour) => {
-    searchGraph(input, target + 1, neighbour.x, neighbour.y);
-  });
-
-  if (target === 9 && neighbours.length !== 0) {
-    neighbours.forEach((neighbour) => {
+  if (target === 9) {
+    neighbours.forEach(({ x: neighbourX, y: neighbourY }) => {
       partTwoCounter++;
-      const hasBeenVisited = nineLocations.some(
-        (location) => location.x === neighbour.x && location.y === neighbour.y
-      );
-
-      if (!hasBeenVisited) {
-        nineLocations.push({ x: neighbour.x, y: neighbour.y });
+      if (
+        !nineLocations.some(({ x, y }) => x === neighbourX && y === neighbourY)
+      ) {
+        nineLocations.push({ x: neighbourX, y: neighbourY });
         partOneCounter++;
       }
     });
   }
 };
 
-const geValidNeighbours = (input, target, x, y) => {
+const getValidNeighbours = (input, target, x, y) => {
   const neighbours = [];
 
   if (input[y - 1]?.[x] === target) {
