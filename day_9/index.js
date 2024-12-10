@@ -29,26 +29,16 @@ fs.readFile("test.txt", "utf8", (err, data) => {
   let numbersToInsert = justNumbers.reverse();
   let dotCount = 0;
 
-  console.log(currentString);
-
   currentString.forEach((char, i) => {
-    if (dotCount < dotCounter) {
-      if (char === ".") {
-        dotCount++;
-        currentString[i] = numbersToInsert.shift();
-      }
+    if (char === "." && dotCount < dotCounter) {
+      dotCount++;
+      currentString[i] = numbersToInsert.shift();
     }
   });
 
-  // for (let i = 0; i < dotCounter; i++) {
-  //   currentString = [...currentString, "."];
-  // }
-
-  console.log(currentString.slice(justNumbers.length));
-
   const answer = currentString
-    .slice(justNumbers.length)
-    .reduce((acc, curr, i) => (acc += Number(curr) * i), 0);
+    .slice(0, currentString.length - dotCounter) // Use currentString.length here
+    .reduce((acc, curr, i) => (curr !== "." ? acc + Number(curr) * i : acc), 0);
 
   console.log(answer);
 });
