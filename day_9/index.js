@@ -8,39 +8,32 @@ fs.readFile("input.txt", "utf8", (err, data) => {
     return;
   }
 
-  const inputNumbers = data.split("");
-
-  let counter = 0;
-
-  const fullString = inputNumbers.reduce((acc, curr, i) => {
+  const fullString = data.split("").reduce((acc, curr, i) => {
     if (isDivisibleByTwo(i) && curr !== ".") {
-      return acc + `${counter++}`.repeat(Number(curr));
+      return [...acc, ...Array(Number(curr)).fill(i / 2)];
     } else {
-      return acc + ".".repeat(curr);
+      return [...acc, ...Array(Number(curr)).fill(".")];
     }
-  }, "");
+  }, []);
 
-  // console.log(fullString);
+  console.log(getPartOne(fullString));
+});
 
-  let currentString = fullString.split("");
-
-  fullString.split("").forEach((char, i) => {
+const getPartOne = (fullString) => {
+  fullString.forEach((char, i) => {
     if (char === ".") {
-      for (let j = currentString.length - 1; j > i; j--) {
-        if (currentString[j] !== ".") {
-          currentString[i] = currentString[j];
-          currentString[j] = ".";
+      for (let j = fullString.length - 1; j > i; j--) {
+        if (fullString[j] !== ".") {
+          fullString[i] = fullString[j];
+          fullString[j] = ".";
           break;
         }
       }
-      // console.log(currentString.join(""));
     }
   });
 
-  const answer = currentString.reduce(
+  return fullString.reduce(
     (acc, curr, i) => (curr !== "." ? acc + Number(curr) * i : acc),
     0
   );
-
-  console.log(answer);
-});
+};
